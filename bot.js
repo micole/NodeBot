@@ -10,6 +10,7 @@ var RegUrl = new RegExp("(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[
 //lib
 var irc = require("irc");
 var http = require("follow-redirects").http;
+var S = require("string");
 
 //bot
 var bot = new irc.Client(config.server, config.botName, {
@@ -31,17 +32,27 @@ bot.addListener("message", function(from, to, message) {
     if(RegUrl.test(message)){
         var url = message.match(RegUrl)[0];
 
-        http.get(url, function(result){
-            var responseParts = '';
-            result.on('data', function(chunk){
-                responseParts += chunk;
-                //bot.say(to, chunk);
+        try{
+            http.get(url, function(result){
+                var responseParts = '';
+                result.on('data', function(chunk){
+                    responseParts += chunk;
+                });
+                result.on('end', function(){
+                    console.log(responseParts);
+                    title = cleanTitle(responseParts);
+                    if(title){
+                        bot.say(to, cleanTitle(responseParts));
+                    } else {
+                        bot.say(to, "Can't find title data.");
+                    }
+
+                });
             });
-            result.on('end', function(){
-                console.log(responseParts);
-                bot.say(to, responseParts.substring(responseParts.toLowerCase().lastIndexOf("<title>")+7, responseParts.toLowerCase().lastIndexOf("</title>")));
-            });
-        });
+        } catch (e) {
+            bot.say(to, from + ", Couldn't find Title Data");
+        }
+
 
         //var req = http.request({method: 'HEAD', host: url, port: 80}, function(res) {
         //    bot.say(to, JSON.stringify(res.headers));
@@ -59,8 +70,12 @@ bot.addListener('error', function(message) {
 
 
 function cleanTitle(title){
+    //TODO: better title finder
     title = title.substring(title.toLowerCase().lastIndexOf("<title>") + 7,
                             title.toLowerCase().lastIndexOf("</title>"));
     title = title.replace(/(\r\n|\n|\r)/gm,"");
     title = title.replace("'", "\'");
+    title = S(title).decodeHTMLEntities().s;
+    title = title.replace(/^\s+|\s+$/g, '');
+    return(title);
 }
