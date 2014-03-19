@@ -11,6 +11,8 @@ var RegUrl = new RegExp("(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[
 var irc = require("irc");
 var http = require("follow-redirects").http;
 var S = require("string");
+var request = require("request");
+var cheerio = require("cheerio");
 
 //bot
 var bot = new irc.Client(config.server, config.botName, {
@@ -32,7 +34,14 @@ bot.addListener("message", function(from, to, message) {
     if(RegUrl.test(message)){
         var url = message.match(RegUrl)[0];
 
-        try{
+        request({
+            uri: url
+        }, function(error, response, body){
+            var $ = cheerio.load(body);
+            bot.say(to, $('title').text());
+        });
+
+        /*try{
             http.get(url, function(result){
                 var responseParts = '';
                 result.on('data', function(chunk){
@@ -51,7 +60,7 @@ bot.addListener("message", function(from, to, message) {
             });
         } catch (e) {
             bot.say(to, from + ", Couldn't find Title Data");
-        }
+        }*/
 
 
         //var req = http.request({method: 'HEAD', host: url, port: 80}, function(res) {
