@@ -21,7 +21,7 @@ var forecast = require("forecast");
 //This seems to be horrible and unreliable
 var chsForecast = new forecast({
     service: 'forcast.io',
-    key: 'your key here',
+    key: 'key here',
     units: 'fahrenheit',
     cache: true,
     ttl: {
@@ -82,13 +82,23 @@ bot.addListener("message", function(from, to, message) {
 
     if(validUrl.test(message)){
         var url = message.match(validUrl)[0];
+        //fix imgur images
+        if(url.indexOf(".gif") >= 0){
+            url = url.substring(0, url.indexOf(".gif"));
+        }
+        if(url.indexOf(".jpg") >= 0){
+            url = url.substring(0, url.indexOf(".jpg"));
+        }
         //bot.say(to, "Fetching: " + url);
 
 
         //TODO: maximum stack size exceeds during imgur gif's
         request({
             uri: url,
-            timeout: 2000
+            timeout: 2000,
+            headers: {
+                'Accept': 'text/plain'
+            }
         }, function(error, response, body){
             console.log(error);
             console.log(response);
@@ -98,7 +108,8 @@ bot.addListener("message", function(from, to, message) {
                 boy.say(to, "error");
             } else {
                 var $ = cheerio.load(body);
-                bot.say(to, $('title').text());
+                title = $('title').text().replace(/(\r\n|\n|\r)/gm,"");
+                bot.say(to, title);
             }
         });
 
