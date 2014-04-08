@@ -3,7 +3,7 @@
 
 //config:
 var config = {
-    channels: ["#cscofc", "#micoleTest"],
+    channels: [ "#cscofc", "#micoleTest"],
     server: "irc.freenode.net",
     botName: "Bukkets_Baby"
 };
@@ -17,11 +17,13 @@ var S = require("string");
 var request = require("request");
 var cheerio = require("cheerio");
 var forecast = require("forecast");
+var urban = require("urban");
+var botconfig = require('./config');
 
 //This seems to be horrible and unreliable
 var chsForecast = new forecast({
     service: 'forcast.io',
-    key: 'key here',
+    key: botconfig.keys["forecast"],
     units: 'fahrenheit',
     cache: true,
     ttl: {
@@ -48,36 +50,63 @@ bot.addListener("message", function(from, to, message) {
         bot.say(to, sub);
     }
 
-    if(message.indexOf('!w') == 0){
-        var sub = message.split(" ");
-        if(sub[1].toLowerCase() == "charleston"){
-            chsForecast.get([32.7833, -79.9333], function(err, weather) {
-                if(err){
-                    console.log("ERROR");
-                    console.log(err);
-                } else {
-                    console.log(weather);
-                    //var jsonWeather = JSON.parse(weather);
-                    if(sub[2] == null){
-                        weatherString = "";
-                        weatherString += "Hourly: " + weather.hourly.summary; //+ " ";
-                        weatherString += " ---- Daily: " + weather.daily.summary;
-                        /*for(i = 0; i < weather.data.length; i++){
-                            //data.time given in seconds, need to convert to milliseconds
-                            date = new Date(weather.data[i].time * 1000);
-                            weatherString += "\nDATE:" + date.getMonth() + "/" + date.getDay();
-                            weatherString += " WEATHER: Min Temp:" + weather.data[i].temperatureMin;
-                            weatherString += " Max Temp:" + weather.data[i].temperatureMax;
-                        }*/
-                        bot.say(to, weatherString);
-                    }
-                    //console.log(weather);
-                }
-            });
-        } else {
-            bot.say(to, "I'm sorry, I don't have that location. Tell Micole to add that.");
-        }
+    if(message.indexOf('!u') == 0){
+        word = urban(message.substring(2, message.length).trim());
+        word.first(function(json){
+            bot.say(to, json);
+        });
     }
+
+    if(message.indexOf('!w') == 0){
+        //TODO: Add "hell" as a location
+        //TODO: Add google location service to get lat long
+        //var sub = message.split(" ");
+        sub = message.split(" ");
+        location = sub.splice(1, sub.length);
+        locationJoined = location.join();
+        url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURI(location) + "&sensor=false&key=" + botconfig.keys["geocode"];
+        request({
+            uri: url,
+            timeout: 2000
+        }, function(error, response, body){
+            if(error){
+                bot.say(to, "Couldn't find location, check error logs");
+                console.log(error);
+            } else {
+                console.log(body);
+                weatherJson = JSON.parse(body);
+                if(weatherJson.status.indexOf("ZERO_RESULTS") >= 0){
+                    bot.say(to, "Something went wrong, couldn't find location...");
+                } else {
+                    chsForecast.get([weatherJson.results[0].geometry.location.lat, weatherJson.results[0].geometry.location.lng], function(err, weather) {
+                        if(err){
+                            console.log("ERROR");
+                            console.log(err);
+                        } else {
+                            console.log(weather);
+                            //var jsonWeather = JSON.parse(weather);
+
+                            weatherString = "";
+                            weatherString += "Hourly: " + weather.hourly.summary; //+ " ";
+                            weatherString += " ---- Daily: " + weather.daily.summary;
+                            /*for(i = 0; i < weather.data.length; i++){
+                             //data.time given in seconds, need to convert to milliseconds
+                             date = new Date(weather.data[i].time * 1000);
+                             weatherString += "\nDATE:" + date.getMonth() + "/" + date.getDay();
+                             weatherString += " WEATHER: Min Temp:" + weather.data[i].temperatureMin;
+                             weatherString += " Max Temp:" + weather.data[i].temperatureMax;
+                             }*/
+                            bot.say(to, weatherJson.results[0].formatted_address + ": " + weatherString);
+
+                            //console.log(weather);
+                        }
+                    });
+                }
+
+            }
+        });
+    }
+
 
 
     if(validUrl.test(message)){
@@ -164,4 +193,18 @@ function cleanTitle(title){
     title = S(title).decodeHTMLEntities().s;
     title = title.replace(/^\s+|\s+$/g, '');
     return(title);
+}
+
+function getWeather(location){
+    url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURI(location) + "&sensor=false&key=AIzaSyDhAw3eHPr8m0lbuKFGceP-w4sjrUe9XKE";
+    request({
+        uri: url,
+        timeout: 2000
+    }, function(error, response, body){
+        if(error){
+            return("Couldn't find location");
+        } else {
+            return(JSON.parse(body));
+        }
+    });
 }
