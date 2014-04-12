@@ -59,7 +59,6 @@ bot.addListener("message", function(from, to, message) {
 
     if(message.indexOf('!w') == 0){
         //TODO: Add "hell" as a location
-        //TODO: Add google location service to get lat long
         //var sub = message.split(" ");
         sub = message.split(" ");
         location = sub.splice(1, sub.length);
@@ -97,12 +96,9 @@ bot.addListener("message", function(from, to, message) {
                              weatherString += " Max Temp:" + weather.data[i].temperatureMax;
                              }*/
                             bot.say(to, weatherJson.results[0].formatted_address + ": " + weatherString);
-
-                            //console.log(weather);
                         }
                     });
                 }
-
             }
         });
     }
@@ -118,7 +114,6 @@ bot.addListener("message", function(from, to, message) {
         if(url.indexOf(".jpg") >= 0){
             url = url.substring(0, url.indexOf(".jpg"));
         }
-        //bot.say(to, "Fetching: " + url);
 
 
         //TODO: maximum stack size exceeds during imgur gif's
@@ -142,40 +137,7 @@ bot.addListener("message", function(from, to, message) {
             }
         });
 
-        /*try{
-            http.get(url, function(result){
-                var responseParts = '';
-                result.on('data', function(chunk){
-                    responseParts += chunk;
-                    if(responseParts.indexOf("</title>") >= 0){
-                        result.destroy();
-                    }
-                });
-                result.on('end', function(){
-                    var $ = cheerio.load(responseParts);
-                    bot.say(to, $('title').text());
-                    console.log(responseParts);
-                    title = cleanTitle(responseParts);
-                    if(title){
-                        bot.say(to, cleanTitle(responseParts));
-                    } else {
-                        bot.say(to, "Can't find title data.");
-                    }
-
-                });
-            });
-        } catch (e) {
-            bot.say(to, from + ", Couldn't find Title Data");
-        }*/
-
-
-        //var req = http.request({method: 'HEAD', host: url, port: 80}, function(res) {
-        //    bot.say(to, JSON.stringify(res.headers));
-        //});
-        //req.end();
-
-        //bot.say(to, url);
-        //bot.say(to, "found URL");
+        
     }
 });
 
@@ -184,27 +146,3 @@ bot.addListener('error', function(message) {
 });
 
 
-function cleanTitle(title){
-    //TODO: better title finder
-    title = title.substring(title.toLowerCase().lastIndexOf("<title>") + 7,
-                            title.toLowerCase().lastIndexOf("</title>"));
-    title = title.replace(/(\r\n|\n|\r)/gm,"");
-    title = title.replace("'", "\'");
-    title = S(title).decodeHTMLEntities().s;
-    title = title.replace(/^\s+|\s+$/g, '');
-    return(title);
-}
-
-function getWeather(location){
-    url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURI(location) + "&sensor=false&key=AIzaSyDhAw3eHPr8m0lbuKFGceP-w4sjrUe9XKE";
-    request({
-        uri: url,
-        timeout: 2000
-    }, function(error, response, body){
-        if(error){
-            return("Couldn't find location");
-        } else {
-            return(JSON.parse(body));
-        }
-    });
-}
